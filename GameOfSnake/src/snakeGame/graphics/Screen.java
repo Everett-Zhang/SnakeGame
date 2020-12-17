@@ -3,6 +3,7 @@ package snakeGame.graphics;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Font;
+import java.awt.FontMetrics;
 import java.awt.Graphics;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -22,10 +23,13 @@ import Entities.BodyPart;
 
 public class Screen extends JPanel implements Runnable {
 
+	//private static final int BWIDTH = 40, BHEIGHT = 100;
 	private static final long serialVersionUID = 1L;
-	public static final int WIDTH = 1000, HEIGHT = 1000;
+	public static final int WIDTH = 840, HEIGHT = 840;
 	private Thread thread;
 	private boolean running = false;
+	public static final int SCOREKEEPING = 80;
+	private int applesEaten = 0;
 
 	private BodyPart b;
 	private ArrayList<BodyPart> snake;
@@ -45,11 +49,11 @@ public class Screen extends JPanel implements Runnable {
 
 	private Key key;
 
-	public Screen() {
+	public Screen() {		
 		setFocusable(true);
 		key = new Key();
 		addKeyListener(key);
-		setPreferredSize(new Dimension(WIDTH, HEIGHT));
+		setPreferredSize(new Dimension(WIDTH, HEIGHT + SCOREKEEPING));
 
 		r = new Random();
 
@@ -61,15 +65,16 @@ public class Screen extends JPanel implements Runnable {
 
 	public void tick() {
 		if (snake.size() == 0) {
-			b = new BodyPart(xCoor, yCoor, SV);
+			b = new BodyPart(xCoor, yCoor + SCOREKEEPING, SV);
 			snake.add(b);
 		}
 
 		if (apples.size() == 0) {
+			applesEaten++;
 			int xCoor = r.nextInt(WIDTH / SV - 1);
-			int yCoor = r.nextInt(HEIGHT / SV - 1);
+			int yCoor = r.nextInt((HEIGHT + SCOREKEEPING) / SV - 2) + (SCOREKEEPING / SV) ;
 
-			apple = new Apple(xCoor, yCoor, SV);
+			apple = new Apple(xCoor, yCoor , SV);
 			apples.add(apple);
 		}
 
@@ -89,12 +94,13 @@ public class Screen extends JPanel implements Runnable {
 			}
 		}
 
-		if (xCoor < 0 || yCoor < 0 || xCoor > WIDTH / SV - 1 || yCoor > HEIGHT / SV - 1) {
+		if (xCoor < 0 || yCoor < SCOREKEEPING / SV  || xCoor > WIDTH / SV - 1 || yCoor > (HEIGHT + SCOREKEEPING) / SV - 1) {
 			stop();
 		}
 
 		ticks++;
 
+		// speed
 		if (ticks > 1000000) {
 			if (right)
 				xCoor++;
@@ -119,27 +125,56 @@ public class Screen extends JPanel implements Runnable {
 	public void paint(Graphics g) {
 		// g.clearRect(0, 0, WIDTH, HEIGHT);
 
+		if(running) {
 		// set background color below
-		g.setColor(new Color(100, 50, 0));
-		g.fillRect(0, 0, WIDTH, HEIGHT);
+			g.setColor(new Color(30, 50, 92));
+			g.fillRect(0, 0, WIDTH, SCOREKEEPING);
+			g.setColor(new Color(100, 50, 0));
+			g.fillRect(0, SCOREKEEPING, WIDTH, HEIGHT + SCOREKEEPING);
+			g.setColor(Color.BLACK);
+			for (int i = 0; i < WIDTH / SV; i++) {
+				g.drawLine(i * SV, SCOREKEEPING, i * SV, HEIGHT + SCOREKEEPING);
+			}
+	
+			for (int i = SCOREKEEPING / SV; i < (HEIGHT + SCOREKEEPING) / SV; i++) {
+				if(i == SCOREKEEPING / SV) {
+					g.fillRect(0, i * SV - 10, WIDTH, 10);
+				}
+				g.drawLine(0, i * SV, WIDTH, i * SV);
+			}
+	
+			for (int i = 0; i < snake.size(); i++) {
+				snake.get(i).draw(g);
+			}
+	
+			for (int i = 0; i < apples.size(); i++) {
+	
+				apples.get(i).draw(g);
+			}
+			
+			g.setColor(Color.RED);
+			g.setFont( new Font("Ink Free", Font.BOLD, 40));
+			FontMetrics metrics = getFontMetrics(g.getFont());
+			g.drawString("Score: "+ (20 * applesEaten), (WIDTH - metrics.stringWidth("Score: "+ (20 * applesEaten)))/2,
+					SCOREKEEPING/2);
+		}
+		else {
+			endGame(g);
+		}
+	}
+
+	private void endGame(Graphics g) {
+		// TODO Auto-generated method stub
 		g.setColor(Color.BLACK);
-		for (int i = 0; i < WIDTH / SV; i++) {
-			g.drawLine(i * SV, 0, i * SV, HEIGHT);
-		}
+		g.fillRect(WIDTH/2 - 400/2, HEIGHT/2 - 200/2, 400, 150);
+		
+		g.setColor(Color.RED);
+		g.setFont( new Font("Ink Free", Font.BOLD, 75));
+		FontMetrics metrics = getFontMetrics(g.getFont());
+		g.drawString("Game Over", (WIDTH - metrics.stringWidth("Game Over"))/2,
+				HEIGHT/2);
 
-		for (int i = 0; i < HEIGHT / SV; i++) {
-			g.drawLine(0, i * SV, WIDTH, i * SV);
-		}
-
-		for (int i = 0; i < snake.size(); i++) {
-			snake.get(i).draw(g);
-		}
-
-		for (int i = 0; i < apples.size(); i++) {
-
-			apples.get(i).draw(g);
-		}
-
+		g.setColor(Color.RED);
 	}
 
 	public void start() {
